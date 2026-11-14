@@ -1,0 +1,45 @@
+# AstraOS ISO Builder - Fedora base
+# Builds a live ISO using livemedia-creator (lorax)
+
+FROM fedora:40
+
+LABEL maintainer="AstraOS Project"
+LABEL description="AstraOS ISO builder (Fedora + GNOME)"
+
+# Install ISO build tools
+RUN dnf update -y && \
+    dnf install -y \
+    lorax \
+    livemedia-creator \
+    anaconda \
+    pykickstart \
+    anaconda-install-env-deps \
+    git \
+    wget \
+    curl \
+    && dnf clean all
+
+# Copy kickstart
+COPY kickstart/astraos.ks /kickstart/astraos.ks
+
+# Validate kickstart syntax
+RUN ksvalidator /kickstart/astraos.ks || echo "Warning: kickstart validation issues"
+
+# Create directories
+RUN mkdir -p /results /tmp/lmc
+
+# Build the ISO
+# --no-virt: run anaconda directly in chroot (no KVM needed)
+# --make-iso: produce a bootable ISO
+# --result-dir: where to put the final ISO
+CMD ["livemedia-creator", \
+     "--ks", "/kickstart/astraos.ks", \
+     "--no-virt", \
+     "--make-iso", \
+     "--iso-name", "AstraOS-0.3.0-x86_64.iso", \
+     "--iso-label", "ASTRAOS", \
+     "--result-dir", "/results", \
+     "--tmp", "/tmp/lmc", \
+     "--vcpus", "2", \
+     "--ram", "4096", \
+     "--image-size", "8"]
